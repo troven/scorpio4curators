@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <groupId>com.scorpio4</groupId>
+        <artifactId>scorpio4</artifactId>
+        <version>0.06-SNAPSHOT</version>
+        <relativePath>../</relativePath>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>scorpio4curators</artifactId>
+    <packaging>maven-plugin</packaging>
+
+    <name>Scorpio4 Curators</name>
+    <url>http://www.scorpio4.com</url>
+
+    <organization>
+        <name>scorpio4</name>
+        <url>http://www.scorpio4.com/pom/</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <id>lee</id>
+            <name>Lee Curtis</name>
+            <email>lee.curtis@me.com</email>
+            <organization>Troven / Scorpio4</organization>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+            <timezone>+11</timezone>
+        </developer>
+    </developers>
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>github.com/scorpio4/scorpio4rdf.git</url>
+        <connection>scm:git:https://github.com/scorpio4/scorpio4rdf.git</connection>
+    </scm>
+
+    <properties>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.camel</groupId>
+                <artifactId>camel-maven-plugin</artifactId>
+                <version>${camel.version}</version>
+            </plugin>
+            <!--Groovy Eclipse compiler plugin compiles both .groovy and .java sources-->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <compilerId>groovy-eclipse-compiler</compilerId>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-eclipse-compiler</artifactId>
+                        <version>${groovy-eclipse-compiler.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-eclipse-batch</artifactId>
+                        <version>${groovy-eclipse-batch.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-all</artifactId>
+                        <version>${groovy.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+        </plugins>
+
+
+    </build>
+    <repositories>
+        <repository>
+            <id>maven-restlet-clone</id>
+            <name>Maven Restlet</name>
+            <url>http://repo1.maven.org/maven2/</url>
+        </repository>
+    </repositories>
+
+    <!-- Project dependencies -->
+    <dependencies>
+
+        <dependency>
+            <groupId>com.scorpio4</groupId>
+            <artifactId>scorpio4core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+    </dependencies>
+
+</project>
