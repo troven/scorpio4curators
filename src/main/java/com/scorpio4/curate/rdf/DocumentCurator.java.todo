@@ -1,0 +1,254 @@
+package com.scorpio4.curate.rdf;
+/*
+ *   Fact:Core - CONFIDENTIAL
+ *   Unpublished Copyright (c) 2009-2014 Lee Curtis, All Rights Reserved.
+ *
+ *   NOTICE:  All information contained herein is, and remains the property of Lee Curtis. The intellectual and technical concepts contained
+ *   herein are proprietary to Lee Curtis and may be covered by Australian, U.S. and Foreign Patents, patents in process, and are protected by trade secret or copyright law.
+ *   Dissemination of this information or reproduction of this material is strictly forbidden unless prior written permission is obtained
+ *   from Lee Curtis.  Access to the source code contained herein is hereby forbidden to anyone except current Lee Curtis employees, managers or contractors who have executed
+ *   Confidentiality and Non-disclosure agreements explicitly covering such access.
+ *
+ *   The copyright notice above does not evidence any actual or intended publication or disclosure  of  this source code, which includes
+ *   information that is confidential and/or proprietary, and is a trade secret, of Lee Curtis.   ANY REPRODUCTION, MODIFICATION, DISTRIBUTION, PUBLIC  PERFORMANCE,
+ *   OR PUBLIC DISPLAY OF OR THROUGH USE  OF THIS  SOURCE CODE  WITHOUT  THE EXPRESS WRITTEN CONSENT OF LEE CURTIS IS STRICTLY PROHIBITED, AND IN VIOLATION OF APPLICABLE
+ *   LAWS AND INTERNATIONAL TREATIES.  THE RECEIPT OR POSSESSION OF  THIS SOURCE CODE AND/OR RELATED INFORMATION DOES NOT CONVEY OR IMPLY ANY RIGHTS
+ *   TO REPRODUCE, DISCLOSE OR DISTRIBUTE ITS CONTENTS, OR TO MANUFACTURE, USE, OR SELL ANYTHING THAT IT  MAY DESCRIBE, IN WHOLE OR IN PART.
+ *
+ */
+
+import com.scorpio4.fact.Curator;
+import com.scorpio4.fact.stream.FactStream;
+import com.scorpio4.iq.bean.BeanConverter;
+import com.scorpio4.oops.FactException;
+import com.scorpio4.oops.IQException;
+import com.scorpio4.util.Steps;
+import com.scorpio4.util.io.Fingerprint;
+import org.apache.tika.Tika;
+import org.apache.tika.exception.TikaException;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.sax.BodyContentHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Fact:Core (c) 2013
+ * Module: com.scorpio4.learn
+ * User  : lee
+ * Date  : 28/01/2014
+ * Time  : 10:36 PM
+ */
+
+public class DocumentCurator implements Curator {
+    private static final Logger log = LoggerFactory.getLogger(DocumentCurator.class);
+
+    private Map<String,String> nsMap = new HashMap();
+    private BeanConverter convertsType = new BeanConverter();
+    private Tika tika = new Tika();
+    private LearnKeyword learnKeyword = new LearnKeyword();
+
+    private boolean useFingerprint = false;
+
+    public DocumentCurator() {
+        init();
+    }
+
+    public DocumentCurator(boolean useFingerprint) {
+        this.useFingerprint=useFingerprint;
+        init();
+    }
+
+    public void init() {
+        nsMap.put("rdfs", RDFS.);
+        nsMap.put("dc", DC);
+        nsMap.put("dcterms", DCTERMS);
+        nsMap.put("skos", SKOS);
+        nsMap.put("geo", GEO);
+        nsMap.put("meta", ASSETS +"curated:");
+        nsMap.put("exif", ASSETS +"curated:exif:");
+        nsMap.put("tiff", ASSETS + "curated:tiff:");
+    }
+
+    @Override
+    public void curate(FactStream stream, Object curated) throws FactException, IQException {
+        try {
+            if (File.class.isInstance(curated)) curateFile(stream, (File) curated);
+            else if (URL.class.isInstance(curated)) curateURL(stream, (URL) curated);
+            else if (Path.class.isInstance(curated)) curatePath(stream, (Path) curated);
+            else throw new IQException("self:curate:document:oops:incompatible-type#"+curated.getClass().getCanonicalName());
+        } catch (IOException e) {
+            throw new IQException(e);
+        } catch (SAXException e) {
+            throw new IQException(e);
+        } catch (TikaException e) {
+            throw new IQException(e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IQException(e);
+        } catch (URISyntaxException e) {
+            throw new IQException(e);
+        }
+    }
+
+    private void curatePath(final FactStream stream, Path curated) throws IOException {
+        log.debug("curate Path: " + curated.toUri());
+        Files.walkFileTree( curated, new PathWalker(this, stream) {
+
+            public void curate(Path file, BasicFileAttributes attr) throws FactException, IOException {
+                String uri = file.toUri().toString();
+                try {
+                    boolean isDirectory = Files.isDirectory(file);
+                    log.debug("walk "+(isDirectory?"Directory":"File")+" Path: " + uri);
+                    if (!isDirectory) {
+                        InputStream inputStream = Files.newInputStream(file);
+                        log.debug("walk File Path: " + uri + " - length: " + inputStream.available());
+                        curateInputStream(stream, uri, inputStream);
+                        inputStream.close();
+                        if (useFingerprint) {
+                            inputStream = Files.newInputStream(file);
+                            curateFingerprint(stream, uri, inputStream );
+                            inputStream.close();
+                        }
+                    }
+                } catch (TikaException e) {
+                    log.error("self:learn:document:oops:meta#"+e.getMessage(),e);
+                } catch (SAXException e) {
+                    log.error("self:learn:document:oops:xml#"+e.getMessage(),e);
+                } catch (IQException e) {
+                    log.error("self:learn:document:oops:iq#"+e.getMessage(),e);
+                } catch (NoSuchAlgorithmException e) {
+                    log.error("self:learn:document:oops:crypto#"+e.getMessage(),e);
+                }
+                super.curate(file,attr);
+            }
+        });
+    }
+
+    private void curateFile(FactStream stream, File curated) throws IOException, SAXException, TikaException, IQException, FactException, NoSuchAlgorithmException, URISyntaxException {
+        Path path = Paths.get(curated.toURI());
+
+        if (curated.isFile()) {
+            curateInputStream(stream, path.toUri().toString(), new FileInputStream(curated));
+            curatePath(stream, path);
+            if (useFingerprint) {
+                FileInputStream fileInputStream = new FileInputStream(curated);
+                curateFingerprint(stream, path.toUri().toString(), fileInputStream);
+                fileInputStream.close();
+            }
+        } else {
+            for(File file:curated.listFiles()) {
+                curateFile(stream, file);
+            }
+        }
+    }
+
+    private void curateURL(FactStream stream, URL curated) throws IOException, TikaException, SAXException, FactException, IQException, URISyntaxException {
+        String uri = Paths.get(curated.toString()).toUri().toString();
+        InputStream inputStream = curated.openStream();
+        curateInputStream(stream, uri, inputStream);
+    }
+
+    private void curateInputStream(FactStream stream, String uri, InputStream inputStream) throws IOException, TikaException, SAXException, FactException, IQException {
+        stream.fact(uri, CURATOR+"by", getIdentity());
+
+        String mimeType = tika.detect(uri);
+        stream.fact(uri, DCTERMS+"format", MIME_TYPE+mimeType);
+
+        BodyContentHandler ch = new BodyContentHandler();
+        AutoDetectParser parser = new AutoDetectParser();
+        ParseContext context = new ParseContext();
+
+        Metadata metadata = new Metadata();
+        metadata.set( "rdfs:label", Steps.local( uri ));
+        metadata.set(Metadata.CONTENT_TYPE, mimeType);
+
+        parser.parse(inputStream, ch, metadata, context);
+        log.debug("curate InputStream " + uri + " as " + mimeType + ", text is " + ch.toString().length() + " bytes");
+        inputStream.close();
+
+        curateMetadata(uri, stream, metadata);
+        curateText(uri, stream, ch.toString());
+    }
+
+    public void curateText(String uri, FactStream stream, String text) throws FactException, IQException, IOException {
+        if (learnKeyword==null) return;
+        log.debug("Curate text for: "+uri);
+        Map<String, String> keywords = learnKeyword.keywords(text);
+        for(Map.Entry<String, String> keyword:keywords.entrySet()) {
+            String keywordValue = keyword.getValue();
+            Object value = convertsType.convertToType(keywordValue, keywordValue.getClass());
+            stream.fact(uri, keyword.getKey(),value, BeanConverter.convertToXSD(value));
+        }
+    }
+
+    private void curateFingerprint(FactStream stream, String uri, InputStream inputStream) throws FactException, IOException, NoSuchAlgorithmException {
+        String fingerprint = Fingerprint.identify(inputStream);
+        stream.fact(uri, FILE+"fingerprint", "urn:sha1:"+fingerprint);
+    }
+
+    private void curateMetadata(String uri, FactStream stream, Metadata metadata) throws FactException {
+        for(String name: metadata.names()) {
+            int ix  = name.indexOf(":");
+            String value$ = metadata.get(name);
+
+            String xsdType = BeanConverter.convertToXSD(value$);
+            Class valueType = BeanConverter.convertXSDToClass(xsdType);
+            Object value = convertsType.convertToType(value$, valueType);
+//            log.trace("> "+name+" := "+value$);
+
+            if (ix>0) {
+                String prefix = name.substring(0,ix);
+                String baseURI = nsMap.get(prefix);
+                if (baseURI!=null) stream.fact(uri, baseURI+name.substring(ix+1), value, xsdType);
+
+            } else {
+//                stream.fact(uri, getIdentity()+"#"+name, value$, xsdType);
+            }
+        }
+
+    }
+
+    @Override
+    public boolean canCurate(Object curated) {
+        return File.class.isInstance(curated) || URL.class.isInstance(curated) || Path.class.isInstance(curated);
+    }
+
+    public LearnKeyword getLearnKeyword() {
+        return learnKeyword;
+    }
+
+    public boolean isUseFingerprint() {
+        return useFingerprint;
+    }
+
+    public void setUseFingerprint(boolean useFingerprint) {
+        this.useFingerprint = useFingerprint;
+    }
+
+    public void setLearnKeyword(LearnKeyword learnKeyword) {
+        this.learnKeyword = learnKeyword;
+    }
+
+
+    @Override
+    public String getIdentity() {
+        return "bean:"+getClass().getCanonicalName();
+    }
+
+}
