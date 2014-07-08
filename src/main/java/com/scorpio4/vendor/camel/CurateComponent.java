@@ -1,6 +1,6 @@
 package com.scorpio4.vendor.camel;
 
-import com.scorpio4.ExecutionEnvironment;
+import com.scorpio4.runtime.ExecutionEnvironment;
 import com.scorpio4.curate.Curator;
 import com.scorpio4.curate.rdf.EmailCurator;
 import com.scorpio4.curate.rdf.FileSystemCurator;
