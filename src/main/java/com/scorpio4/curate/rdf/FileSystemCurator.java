@@ -5,7 +5,7 @@ import com.scorpio4.fact.stream.FactStream;
 import com.scorpio4.oops.FactException;
 import com.scorpio4.oops.IQException;
 import com.scorpio4.util.DateXSD;
-import com.scorpio4.vocab.COMMON;
+import com.scorpio4.vocab.COMMONS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,10 +112,10 @@ class PathWalker extends SimpleFileVisitor<Path> {
         learn.fact(fileURI, curator.FILE + "size", attr.size(), "integer");
 		String contentType = Files.probeContentType(file);
         if (contentType!=null)
-    		learn.fact(fileURI, curator.FILE + "contentType", COMMON.MIME_TYPE+contentType);
+    		learn.fact(fileURI, curator.FILE + "contentType", COMMONS.MIME_TYPE+contentType);
 
         UserPrincipal owner = Files.getOwner(file);
-        learn.fact(fileURI, curator.FILE + "owner", owner, COMMON.MIME_TYPE+"string");
+        learn.fact(fileURI, curator.FILE + "owner", owner, COMMONS.MIME_TYPE+"string");
 
         curatePermissions(learn, fileURI, file);
         log.debug("Curated Path: "+fileURI);
@@ -124,13 +124,13 @@ class PathWalker extends SimpleFileVisitor<Path> {
     public void curatePermissions(FactStream learn, String fileURI, Path file) throws IOException, FactException {
         Set<PosixFilePermission> posixFilePermissions = Files.getPosixFilePermissions(file);
         for(PosixFilePermission perm:posixFilePermissions) {
-            learn.fact(fileURI, curator.FILE + "can:"+perm.name().toLowerCase(), "true", COMMON.MIME_TYPE+"boolean");
+            learn.fact(fileURI, curator.FILE + "can:"+perm.name().toLowerCase(), "true", COMMONS.MIME_TYPE+"boolean");
         }
 
-        learn.fact(fileURI, curator.FILE + "is:hidden", Files.isHidden(file), COMMON.MIME_TYPE+"boolean");
-        learn.fact(fileURI, curator.FILE + "is:executable", Files.isExecutable(file), COMMON.MIME_TYPE+"boolean");
-        learn.fact(fileURI, curator.FILE + "is:readable", Files.isReadable(file), COMMON.MIME_TYPE+"boolean");
-        learn.fact(fileURI, curator.FILE + "is:symbolic", Files.isSymbolicLink(file), COMMON.MIME_TYPE+"boolean");
+        learn.fact(fileURI, curator.FILE + "is:hidden", Files.isHidden(file), COMMONS.MIME_TYPE+"boolean");
+        learn.fact(fileURI, curator.FILE + "is:executable", Files.isExecutable(file), COMMONS.MIME_TYPE+"boolean");
+        learn.fact(fileURI, curator.FILE + "is:readable", Files.isReadable(file), COMMONS.MIME_TYPE+"boolean");
+        learn.fact(fileURI, curator.FILE + "is:symbolic", Files.isSymbolicLink(file), COMMONS.MIME_TYPE+"boolean");
 
     }
 

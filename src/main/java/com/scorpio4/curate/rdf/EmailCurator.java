@@ -13,9 +13,9 @@ import com.scorpio4.oops.IQException;
 import com.scorpio4.util.DateXSD;
 import com.scorpio4.util.Identifiable;
 import com.scorpio4.util.string.PrettyString;
-import com.scorpio4.vocab.COMMON;
+import com.scorpio4.vocab.COMMONS;
 import com.sun.mail.util.BASE64DecoderStream;
-import net.sf.classifier4J.summariser.SimpleSummariser;
+//import net.sf.classifier4J.summariser.SimpleSummariser;
 import org.apache.commons.codec.EncoderException;
 import org.apache.commons.codec.net.URLCodec;
 import org.apache.commons.io.IOUtils;
@@ -51,7 +51,7 @@ public class EmailCurator implements Identifiable, Curator {
 	public static final String NS_MAIL = "self:mail:";
 	File home = null;
 	Map<String,String> headersToLearn = new HashMap();
-	SimpleSummariser summariser = new SimpleSummariser();
+//	SimpleSummariser summariser = new SimpleSummariser();
 	int summaryLines = 3, nextMessageNumber = 0;
 	DateXSD dateXSD = new DateXSD();
 	private FlagTerm query;
@@ -319,7 +319,7 @@ public class EmailCurator implements Identifiable, Curator {
 				Document doc = Jsoup.parse(body.toString());
 				body = doc.text();
 			}
-			learn.fact( msgURI, COMMENT, summariser.summarise(body.toString(), summaryLines), "string" );
+//			learn.fact( msgURI, COMMENT, summariser.summarise(body.toString(), summaryLines), "string" );
 			learn.fact( msgURI, NS_MAIL+"body", body.toString(), "string" );
 
 		} else if (part.isMimeType("multipart/*")) {
@@ -335,7 +335,7 @@ public class EmailCurator implements Identifiable, Curator {
 
 				log.debug("Learn Body: "+msgURI+" -> "+filename);
 				learn.fact( msgURI, NS_MAIL+"body", "<body>"+body.toString()+"</body>", XSD.STRING );
-				learn.fact( msgURI, COMMENT, summariser.summarise(body.toString(), summaryLines), XSD.STRING );
+//				learn.fact( msgURI, COMMENT, summariser.summarise(body.toString(), summaryLines), XSD.STRING );
 
 			} else if (body instanceof MimeMultipart) {
 
@@ -535,8 +535,8 @@ public class EmailCurator implements Identifiable, Curator {
 
 	private String toMimeType(String contentType) {
 		int ix = contentType.indexOf(";");
-		if (ix<0) return COMMON.MIME_TYPE+contentType.toLowerCase();
-		return COMMON.MIME_TYPE+contentType.substring(0, ix).toLowerCase();
+		if (ix<0) return COMMONS.MIME_TYPE+contentType.toLowerCase();
+		return COMMONS.MIME_TYPE+contentType.substring(0, ix).toLowerCase();
 	}
 
 	public File getHome() {

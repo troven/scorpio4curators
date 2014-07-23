@@ -12,7 +12,7 @@ import com.scorpio4.oops.FactException;
 import com.scorpio4.oops.IQException;
 import com.scorpio4.util.Identifiable;
 import com.scorpio4.util.string.PrettyString;
-import com.scorpio4.vocab.COMMON;
+import com.scorpio4.vocab.COMMONS;
 import org.limewire.collection.CharSequenceKeyAnalyzer;
 import org.limewire.collection.PatriciaTrie;
 import org.limewire.collection.Trie;
@@ -176,17 +176,17 @@ public class BeanCurator implements Curator, Identifiable {
             stream.fact(propertyURI, RDFS.LABEL, propertyDescriptor.getDisplayName(), "string");
             stream.fact(propertyURI, RDFS.COMMENT, humanize(propertyDescriptor.getShortDescription())+" ("+propertyDescriptor.getPropertyType().getSimpleName()+")", "string");
             stream.fact(propertyURI, RDFS.DOMAIN, classURI);
-            stream.fact(propertyURI, RDFS.RANGE, COMMON.XSD+propertyDescriptor.getPropertyType().getSimpleName());
+            stream.fact(propertyURI, RDFS.RANGE, COMMONS.XSD+propertyDescriptor.getPropertyType().getSimpleName());
             stream.fact(propertyURI, pkg+"editor", getClassURI(propertyDescriptor.getPropertyEditorClass()));
 
             if (readMethod!=null) {
                 Class<?>[] types = readMethod.getParameterTypes();
-                for(Class ptype: types) stream.fact(propertyURI, pkg+"readParameter", COMMON.XSD+ptype.getSimpleName());
+                for(Class ptype: types) stream.fact(propertyURI, pkg+"readParameter", COMMONS.XSD+ptype.getSimpleName());
                 stream.fact(propertyURI, pkg+"readReturnType", getClassURI(readMethod.getReturnType()));
             }
             if (writeMethod!=null) {
                 Class<?>[] types = writeMethod.getParameterTypes();
-                for(Class ptype: types) stream.fact(propertyURI, pkg+"writeParameter", COMMON.XSD+ptype.getSimpleName());
+                for(Class ptype: types) stream.fact(propertyURI, pkg+"writeParameter", COMMONS.XSD+ptype.getSimpleName());
                 stream.fact(propertyURI, pkg+"writeReturnType", getClassURI(writeMethod.getReturnType()));
             }
 
@@ -216,7 +216,7 @@ public class BeanCurator implements Curator, Identifiable {
     private void curate(FactStream stream, String propertyURI, String pkg, String paramType, Method readMethod) throws FactException {
         if (readMethod==null) return;
         Class<?>[] types = readMethod.getParameterTypes();
-        for(Class ptype: types) stream.fact(propertyURI, pkg+paramType+"Parameter", COMMON.XSD+ptype.getSimpleName());
+        for(Class ptype: types) stream.fact(propertyURI, pkg+paramType+"Parameter", COMMONS.XSD+ptype.getSimpleName());
         stream.fact(propertyURI, pkg+paramType+"ReturnType", getClassURI(readMethod.getReturnType()));
     }
 

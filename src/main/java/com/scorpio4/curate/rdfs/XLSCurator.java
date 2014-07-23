@@ -13,7 +13,7 @@ import com.scorpio4.oops.IQException;
 import com.scorpio4.util.DateXSD;
 import com.scorpio4.util.Stopwatch;
 import com.scorpio4.util.string.PrettyString;
-import com.scorpio4.vocab.COMMON;
+import com.scorpio4.vocab.COMMONS;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.ss.usermodel.*;
@@ -254,7 +254,7 @@ public class XLSCurator implements Curator {
 //				learn.fact(  +colURI, NS+"hasValue", value, "string");
     } else {
         header.put("required", false);
-        learn.fact(colURI, NS+"hasValue", "", COMMON.XSD_NULL);
+        learn.fact(colURI, NS+"hasValue", "", COMMONS.XSD_NULL);
     }
 }
 

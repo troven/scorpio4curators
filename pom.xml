@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.scorpio4</groupId>
         <artifactId>scorpio4</artifactId>
-        <version>0.09-SNAPSHOT</version>
+        <version>0.11-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
 
@@ -43,7 +43,7 @@
 
     <scm>
         <url>github.com/scorpio4/scorpio4maven.git</url>
-        <connection>scm:git:https://github.com/scorpio4/scorpio4maven.git</connection>
+        <connection>scm:git:https://github.com/scorpio4/scorpio4curators.git</connection>
       <tag>scorpio4-0.06</tag>
   </scm>
 
