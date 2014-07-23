@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * scorpio4-oss (c) 2014
  * Module: com.scorpio4.vendor.camel.component
- * User  : lee
+ * @author lee
  * Date  : 6/07/2014
  * Time  : 5:46 PM
  */

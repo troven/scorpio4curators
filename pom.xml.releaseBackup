@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.scorpio4</groupId>
         <artifactId>scorpio4</artifactId>
-        <version>0.09-SNAPSHOT</version>
+        <version>0.06-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
 
@@ -103,12 +103,6 @@
         <dependency>
             <groupId>com.scorpio4</groupId>
             <artifactId>scorpio4runtime</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.scorpio4</groupId>
-            <artifactId>scorpio4utilities</artifactId>
             <version>${project.version}</version>
         </dependency>
 
