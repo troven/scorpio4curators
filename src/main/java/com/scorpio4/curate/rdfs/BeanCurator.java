@@ -53,12 +53,11 @@ public class BeanCurator implements Curator, Identifiable {
     public void defaults() throws IQException {
         addPackage("com.vaadin.ui.", "self:vui:");
         addPackage("java.util.", "self:java:util:");
-        //
     }
 
     public void addPackage(String pkg, String ns) throws IQException {
-        if (pkg==null||ns==null||pkg.length()<4||ns.length()<4) throw new IQException("self:curate:schema:JavaClass:oops:invalid-package-or-namespace");
-        if (!pkg.endsWith(".")) throw new IQException("self:curate:schema:JavaClass:oops:not-a-package#"+pkg);
+        if (pkg==null||ns==null||pkg.length()<4||ns.length()<4) throw new IQException("self:curate:rdfs:bean:oops:invalid-package-or-namespace");
+        if (!pkg.endsWith(".")) throw new IQException("self:curate:rdfs:bean:oops:not-a-package#"+pkg);
         ns2pkg.put(ns, pkg);
         pkg2ns.put(pkg, ns);
     }
@@ -110,7 +109,7 @@ public class BeanCurator implements Curator, Identifiable {
         try {
             beanInfo = Introspector.getBeanInfo(clazz);
         } catch (IntrospectionException e1) {
-            throw new IQException("self:vendor:vaadin:oops:config#"+clazz.getCanonicalName(),e1);
+            throw new IQException("self:curate:rdfs:bean:oops:config#"+clazz.getCanonicalName(),e1);
         }
         String classURI = getClassURI(clazz);
         if (classURI==null) {
