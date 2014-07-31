@@ -2,10 +2,12 @@ package com.scorpio4.curate.rdf;
 
 import com.scorpio4.curate.Curator;
 import com.scorpio4.fact.stream.FactStream;
+import com.scorpio4.fact.stream.N3Stream;
 import com.scorpio4.oops.FactException;
 import com.scorpio4.oops.IQException;
 import com.scorpio4.util.DateXSD;
 import com.scorpio4.vocab.COMMONS;
+import org.apache.camel.Converter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +28,7 @@ import static java.nio.file.FileVisitResult.CONTINUE;
  * Date  : 27/10/2013
  * Time  : 12:31 AM
  */
+@Converter
 public class FileSystemCurator implements Curator {
     protected static final Logger log = LoggerFactory.getLogger(FileSystemCurator.class);
     boolean curateRDF = false;
@@ -89,6 +92,31 @@ public class FileSystemCurator implements Curator {
     public String getIdentity() {
         return identity;
     }
+
+	@Converter
+	public static FactStream toFactStream(FileSystem fileSystem) throws IQException, FactException, IOException {
+		FactStream learn = new N3Stream();
+		FileSystemCurator curator = new FileSystemCurator();
+		curator.curate(learn,fileSystem);
+		return learn;
+	}
+
+	@Converter
+	public static FactStream toFactStream(Path path) throws IQException, FactException, IOException {
+		FactStream learn = new N3Stream();
+		FileSystemCurator curator = new FileSystemCurator();
+		curator.curate(learn,path);
+		return learn;
+	}
+
+	@Converter
+	public static FactStream toFactStream(File file) throws IQException, FactException, IOException {
+		FactStream learn = new N3Stream();
+		FileSystemCurator curator = new FileSystemCurator();
+		curator.curate(learn,file);
+		return learn;
+	}
+
 }
 
 class PathWalker extends SimpleFileVisitor<Path> {

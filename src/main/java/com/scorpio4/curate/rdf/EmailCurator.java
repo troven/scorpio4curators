@@ -8,6 +8,7 @@ package com.scorpio4.curate.rdf;
 
 import com.scorpio4.curate.Curator;
 import com.scorpio4.fact.stream.FactStream;
+import com.scorpio4.fact.stream.N3Stream;
 import com.scorpio4.oops.FactException;
 import com.scorpio4.oops.IQException;
 import com.scorpio4.util.DateXSD;
@@ -15,7 +16,7 @@ import com.scorpio4.util.Identifiable;
 import com.scorpio4.util.string.PrettyString;
 import com.scorpio4.vocab.COMMONS;
 import com.sun.mail.util.BASE64DecoderStream;
-//import net.sf.classifier4J.summariser.SimpleSummariser;
+import org.apache.camel.Converter;
 import org.apache.commons.codec.EncoderException;
 import org.apache.commons.codec.net.URLCodec;
 import org.apache.commons.io.IOUtils;
@@ -33,6 +34,8 @@ import javax.mail.search.FlagTerm;
 import java.io.*;
 import java.util.*;
 
+//import net.sf.classifier4J.summariser.SimpleSummariser;
+
 /**
  * Scorpio4 (c) 2013-2014
  * Module: com.scorpio4.fact.mail
@@ -40,6 +43,7 @@ import java.util.*;
  * Date  : 25/10/2013
  * Time  : 9:42 PM
  */
+@Converter
 public class EmailCurator implements Identifiable, Curator {
 	private static final Logger log = LoggerFactory.getLogger(EmailCurator.class);
 	HashMap config = new HashMap();
@@ -55,6 +59,9 @@ public class EmailCurator implements Identifiable, Curator {
 	int summaryLines = 3, nextMessageNumber = 0;
 	DateXSD dateXSD = new DateXSD();
 	private FlagTerm query;
+
+	protected EmailCurator() {
+	}
 
 	public EmailCurator(Map props, String server, String type, int port, String username, String password) {
 		setConfig(props);
@@ -635,4 +642,13 @@ public class EmailCurator implements Identifiable, Curator {
 	public void setPort(int port) {
 		this.port = port;
 	}
+
+	@Converter
+	public static FactStream toFactStream(Message message) throws IQException, FactException {
+		FactStream learn = new N3Stream();
+		EmailCurator curator = new EmailCurator();
+		curator.curate(learn,message);
+		return learn;
+	}
+
 }
