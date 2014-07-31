@@ -44,7 +44,7 @@
     <scm>
         <url>github.com/scorpio4/scorpio4curators.git</url>
         <connection>scm:git:https://github.com/scorpio4/scorpio4curators.git</connection>
-  </scm>
+    </scm>
 
     <properties>
     </properties>

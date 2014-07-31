@@ -30,7 +30,7 @@ public interface Curator extends Identifiable {
 	public static final String CURATOR = COMMONS.CORE+"curator/";
 	public static final String CURATED_BY = CURATOR+"curatedBy";
 	public static final String LABEL = RDFS.LABEL.stringValue();
-	public static final String COMMENT = RDFS.LABEL.stringValue();
+	public static final String COMMENT = RDFS.COMMENT.stringValue();
 	public static final String A = RDF.TYPE.stringValue();
 	public static final String DOMAIN = RDFS.DOMAIN.stringValue();
 	public static final String RANGE = RDFS.RANGE.stringValue();

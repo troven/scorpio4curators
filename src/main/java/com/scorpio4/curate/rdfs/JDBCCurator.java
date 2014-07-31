@@ -5,13 +5,14 @@ package com.scorpio4.curate.rdfs;
  *
  *
  */
-import com.scorpio4.util.Identifiable;
 import com.scorpio4.curate.Curator;
 import com.scorpio4.fact.stream.FactStream;
+import com.scorpio4.fact.stream.N3Stream;
 import com.scorpio4.oops.FactException;
 import com.scorpio4.oops.IQException;
-import com.scorpio4.util.Steps;
+import com.scorpio4.util.Identifiable;
 import com.scorpio4.util.string.PrettyString;
+import org.apache.camel.Converter;
 import org.openrdf.model.vocabulary.DCTERMS;
 import org.openrdf.model.vocabulary.RDFS;
 import org.slf4j.Logger;
@@ -21,7 +22,8 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Fact:Core (c) Lee Curtis 2012-2013
@@ -31,13 +33,17 @@ import java.util.*;
  * <p/>
  * Generates N3 representation of a JDBC Connection's DatabaseMetaData
  */
+@Converter
 public class JDBCCurator implements Curator, Identifiable {
 	private static final Logger log = LoggerFactory.getLogger(JDBCCurator.class);
 
-	private String prefix = "sql:", dot = ".", quote = "'";
-	private String baseURI = "bean:"+getClass().getCanonicalName();
-	private Connection connection = null;
+	private String jdbcPrefix = "bean:"+getClass().getCanonicalName()+"#";
+	private String baseURI = null;
     private long startTimestamp = System.currentTimeMillis();
+
+	String dot = ".", quote = "'";
+	String catalog = null, schemaPattern = null, tablePattern = "%";
+	private String pathSeparator = ":";
 
 	public JDBCCurator() {
 	}
@@ -48,15 +54,12 @@ public class JDBCCurator implements Curator, Identifiable {
 
 	public JDBCCurator(String baseURI, Connection connection, FactStream learner) throws IQException, FactException {
 		setIdentity(baseURI);
-		connect(connection);
-		curate(learner,connection);
+		curate(learner, connection);
 	}
 
 	public JDBCCurator(Connection connection, FactStream learner) throws IQException, SQLException, FactException {
 		String uri = connection.getMetaData().getURL();
-		String prefix = Steps.local(uri);
 		setIdentity(uri);
-		connect(connection);
 		if (learner!=null) curate(learner, connection);
 	}
 
@@ -70,23 +73,20 @@ public class JDBCCurator implements Curator, Identifiable {
 		else this.baseURI = baseURI+"#";
 	}
 
-	public void connect(Connection connection) throws IQException {
-		this.connection = connection;
-		try {
-			if (connection.isClosed()) throw new IQException("Connection is closed");
-		} catch (SQLException e) {
-			throw new IQException("SQL connection failed",e);
-		}
-	}
-
     @Override
     public void curate(FactStream learn, Object curated) throws FactException, IQException {
-        if (!canCurate(curated)) throw new IQException("self:learn:schema:jdbc:oops:cant-curate#"+(curated==null?"null":curated.getClass()));
+        if (!canCurate(curated)) throw new IQException("urn:scorpio4:curate:rdfs:jdbc:oops:cant-curate#"+(curated==null?"null":curated.getClass()));
         try {
+	        Connection connection = (Connection)curated;
             DatabaseMetaData metaData = connection.getMetaData();
+	        if (getIdentity()==null) setIdentity(metaData.getURL());
             quote = metaData.getIdentifierQuoteString();
             curateDatabase(learn, metaData);
-            curateTables(learn, metaData);
+	        if (getCatalog()!=null) {
+		        curateCatalog(learn, metaData, getCatalog());
+	        } else {
+		        curateCatalogs(learn, metaData);
+	        }
         } catch (SQLException e) {
             throw new IQException("SQL failed: "+e.getMessage(), e);
         }
@@ -113,68 +113,75 @@ def TYPES = [
 */
 
 	protected void curateDatabase(FactStream learn, DatabaseMetaData metaData) throws SQLException, FactException {
-		String metaURI = metaData.getURL();
+		String metaURI = getIdentity();
 
-        learn.fact(metaURI, CURATOR+"by", getIdentity() );
-        learn.fact(getIdentity(), A, typeOf("Database") );
+        learn.fact(metaURI, A, typeOf("Database") );
         log.debug("Curating SQL database: "+metaURI);
         learn.fact(metaURI, prefix("product"),metaData.getDatabaseProductName(), "string");
-        learn.fact(metaURI, prefix("version"),metaData.getDatabaseProductVersion());
-        learn.fact(metaURI, prefix("ansi92Entry"),metaData.supportsANSI92EntryLevelSQL());
-        learn.fact(metaURI, prefix("ansi92Entry"),metaData.supportsANSI92EntryLevelSQL());
-        learn.fact(metaURI, prefix("ansi92Full"),metaData.supportsANSI92FullSQL());
-        learn.fact(metaURI, prefix("ansi92Intermediate"),metaData.supportsANSI92IntermediateSQL());
+        learn.fact(metaURI, prefix("version"),metaData.getDatabaseProductVersion(), "string");
+        learn.fact(metaURI, prefix("ansi92Entry"),metaData.supportsANSI92EntryLevelSQL(), "boolean");
+        learn.fact(metaURI, prefix("ansi92Entry"),metaData.supportsANSI92EntryLevelSQL(), "boolean");
+        learn.fact(metaURI, prefix("ansi92Full"),metaData.supportsANSI92FullSQL(), "boolean");
+        learn.fact(metaURI, prefix("ansi92Intermediate"),metaData.supportsANSI92IntermediateSQL(), "boolean");
 	}
 
-	protected void curateTables(FactStream learn, DatabaseMetaData metaData) throws SQLException, FactException {
-		String schemaPattern = null;
-		String tablePattern = "%";
-		String[] types = null;
+	protected void curateCatalogs(FactStream learn, DatabaseMetaData metaData) throws SQLException, FactException {
 
         ResultSet catalogs = metaData.getCatalogs();
+		log.debug("Curating catalogs: " + metaData.getURL());
+		int count = 0;
         while(catalogs.next()) {
             String catalog = catalogs.getString("TABLE_CAT");
-            String catalogURI = globalize(catalog);
-
-            log.debug("Curating catalog: " + catalog);
-            log.debug("Curating catalog: " + catalog);
-
-            learn.fact(getIdentity(), prefix("catalog"), catalogURI);
-            learn.fact(catalogURI, A, typeOf("Catalog"));
-            learn.fact(catalogURI, LABEL, PrettyString.humanize(catalog));
-            Map seenSchema = new HashMap();
-            ResultSet tables = metaData.getTables(catalog, schemaPattern, tablePattern, types);
-            while(tables.next()) {
-
-                // handle schema (including NULL schema)
-                String schema = tables.getString("TABLE_SCHEM");
-                if (schema==null) schema = "";
-                if (!seenSchema.containsKey(schema)) {
-                    curateSchema(learn, metaData, catalog, catalogURI, schema);
-                    seenSchema.put(schema, true);
-                }
-                curateTable(learn, metaData, tables);
-            }
-            tables.close();
+	        curateCatalog(learn, metaData, catalog);
+	        count++;
         }
         catalogs.close();
-        log.debug("Finished curating JDBC");
+        log.debug("JDBC Curated "+count+" catalogs");
 	}
 
-    protected void curateSchema(FactStream learn, DatabaseMetaData metaData, String catalog, String catalogURI, String schema) throws SQLException, FactException {
+	private void curateCatalog(FactStream learn, DatabaseMetaData metaData, String catalog) throws FactException, SQLException {
+		String[] types = null;
+		String catalogURI = globalize(catalog);
+
+		log.debug("Curating catalog: " + catalog+" @ "+catalogURI);
+
+		learn.fact(getIdentity(), prefix("catalog"), catalogURI);
+		learn.fact(catalogURI, A, typeOf("Catalog"));
+		learn.fact(catalogURI, prefix("name"), catalog, "string");
+		learn.fact(catalogURI, LABEL, PrettyString.humanize(catalog), "string");
+		Map seenSchema = new HashMap();
+		ResultSet tables = metaData.getTables(catalog, getSchemaPattern(), getTablePattern(), types);
+		int count = 0;
+		while(tables.next()) {
+			// handle schema (including NULL schema)
+			String schema = tables.getString("TABLE_SCHEM");
+			if (schema==null) schema = "";
+			if (!seenSchema.containsKey(schema)) {
+				curateSchema(learn, catalog, catalogURI, schema);
+				seenSchema.put(schema, true);
+			}
+			curateTable(learn, metaData, tables);
+			count++;
+		}
+		log.debug("JDBC Curated "+count+" tables");
+		tables.close();
+	}
+
+	protected void curateSchema(FactStream learn, String catalog, String catalogURI, String schema) throws SQLException, FactException {
         if (schema==null) schema = "";
-        String schemaURI = catalogURI+":"+schema;
+        String schemaURI = catalogURI+getPathSeparator()+schema;
 
         if (schema.equals("")) log.debug("Curating "+catalog+" Default Schema");
         else log.debug("Curating "+catalog+" Schema: "+schema );
 
-        learn.fact(catalogURI, prefix("schema"), schemaURI);
-        learn.fact(schemaURI, A, typeOf("Schema") );
-        learn.fact(schemaURI, LABEL, schema.equals("") ? "default" : PrettyString.humanize(schema), "string");
-        learn.fact(schemaURI, DCTERMS.MODIFIED.stringValue(), "" + startTimestamp, "string");
-        learn.fact(schemaURI, CURATED_BY, "urn:java:"+getClass().getCanonicalName(), "string" );
-        learn.fact(schemaURI, prefix("name"), schema, "string");
+		String label = schema.equals("") ? "default" : PrettyString.humanize(schema);
 
+        learn.fact(catalogURI, prefix("schema"), schemaURI);
+		learn.fact(schemaURI, prefix("name"), schema.equals("")?"default":schema, "string");
+        learn.fact(schemaURI, A, typeOf("Schema") );
+        learn.fact(schemaURI, LABEL, label, "string");
+        learn.fact(schemaURI, DCTERMS.MODIFIED.stringValue(), "" + startTimestamp, "string");
+        learn.fact(schemaURI, CURATED_BY, "bean:"+getClass().getCanonicalName() );
     }
 
     protected void curateTable(FactStream learn, DatabaseMetaData metaData, ResultSet tableMeta) throws SQLException, FactException {
@@ -182,11 +189,12 @@ def TYPES = [
         String catalogURI = globalize(catalog);
 
         String schema = tableMeta.getString("TABLE_SCHEM");
+	    boolean hasSchema = (schema!=null)&&!schema.equals("");
         if (schema==null) schema = "";
         String schemaURI = catalogURI+":"+schema;
 
         String tableName = tableMeta.getString("TABLE_NAME");
-        String tableID = sanitize(tableName);
+//        String tableID = sanitize(tableName);
         String tableType = tableMeta.getString("TABLE_TYPE");
         String label = PrettyString.humanize(tableName).trim();
         String comments = tableMeta.getString("REMARKS");
@@ -195,24 +203,25 @@ def TYPES = [
 
         String tableURI = getTableURI(catalog, schema, tableName);
 
-        boolean hasSchema = (schema!=null)&&!schema.equals("");
         String fqSchema = hasSchema?quote(schema)+dot:"";
         String fqTable = fqSchema+quote(tableName);
 
         log.debug("Curating table: " + catalog+" "+tableName);
-        log.debug("Curating table: " + catalog+" "+tableName);
 
-        learn.fact(tableURI, A, typeOf(tableType));
+	    learn.fact(catalogURI, prefix("schema"), schemaURI);
+	    learn.fact(schemaURI, prefix("table"), tableURI);
+
+	    learn.fact(tableURI, A, typeOf(tableType));
+	    learn.fact(tableURI, prefix("name"), tableName, "string");
         learn.fact(tableURI, LABEL, label, "string");
         learn.fact(tableURI, COMMENT, comments, "string");
-//        n3s.append(prefix("id"), tableID);
-//        n3s.append(prefix("fq"), fqTable);
+
         learn.fact(tableURI, prefix("name"), tableName, "string");
         learn.fact(tableURI, RDFS.ISDEFINEDBY.stringValue(), schemaURI);
 
         curateColumns(learn, metaData, catalog, schema, tableName, tableURI, schemaURI);
 
-        curateJoins(learn, metaData, catalog, schema, tableName, tableURI, schemaURI);
+        curateConstraints(learn, metaData, catalog, schema, tableName, tableURI, schemaURI);
     }
 
     protected void curateColumns(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String table, String tableURI, String schemaURI) throws SQLException, FactException {
@@ -230,20 +239,20 @@ def TYPES = [
 			String defaultValue = columns.getString("COLUMN_DEF");
 			String columnID = sanitize(table)+"_"+sanitize(columnName);
 
-			String columnURI = tableURI+":"+sanitize(columnName);
-			String fqColumn = (schema==null||schema.equals("")?"":quote(schema)+dot)+quote(table)+dot+quote(columnName);
+			String columnURI = tableURI+ getPathSeparator()+sanitize(columnName);
+//			String fqColumn = (schema==null||schema.equals("")?"":quote(schema)+dot)+quote(table)+dot+quote(columnName);
 
 			log.debug("\t"+columnName+": "+type+" ->"+columnURI);
 
             log.debug(comments);
             learn.fact(columnURI, A, typeOf("Column") );
-
+			learn.fact(columnURI, prefix("name"), columnName, "string");
+			learn.fact(columnURI, prefix("type"), type, "string");
             learn.fact(columnURI, LABEL, label, "string");
             learn.fact(columnURI, COMMENT, comments, "string");
 			learn.fact(columnURI, RDFS.DOMAIN.stringValue(), tableURI);
 			learn.fact(columnURI, RDFS.RANGE.stringValue(), prefix(type));
-//            learn.fact(VOCAB.RDFS + "isDefinedBy", schemaURI);
-//			n3s.append(prefix("fq"), fqColumn);
+			learn.fact(columnURI, RDFS.ISDEFINEDBY.stringValue(), schemaURI);
             learn.fact(columnURI, prefix("as"), columnID, "string");
             learn.fact(columnURI, prefix("name"), columnName, "string");
 
@@ -254,8 +263,8 @@ def TYPES = [
 		columns.close();
 	}
 
-	protected void curateJoins(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String table, String tableURI, String schemaURI) throws SQLException, FactException {
-        log.debug("Curating joins for: "+catalog+" "+table);
+	protected void curateConstraints(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String table, String tableURI, String schemaURI) throws SQLException, FactException {
+        log.debug("Curating Constraints for: "+catalog+" "+table);
         Map<String, Map> fkJoins = new HashMap();
 		ResultSet joins = metaData.getImportedKeys(catalog, schema, table);
 
@@ -313,8 +322,9 @@ def TYPES = [
                     learn.fact(joinURI, A, typeOf("Constraint"));
                     learn.fact(joinURI, LABEL, PrettyString.humanize(pkTable), "string");
                     learn.fact(joinURI, COMMENT, PrettyString.humanize(pkTable), "string");
-                    learn.fact(joinURI, RDFS.DOMAIN.stringValue(), fkURI);
-                    learn.fact(joinURI, RDFS.RANGE.stringValue(), pkURI);
+//                    learn.fact(joinURI, RDFS.DOMAIN.stringValue(), fkURI);
+//                    learn.fact(joinURI, RDFS.RANGE.stringValue(), pkURI);
+	                learn.fact(joinURI, RDFS.ISDEFINEDBY.stringValue(), schemaURI);
                     doneJoins.put(joinURI, joinURI);
                 }
                 learn.fact(joinURI,    prefix("constrainedBy"), joinSeqURI);
@@ -325,7 +335,7 @@ def TYPES = [
 	}
 
     public String getTableURI(String catalog, String schema, String table) {
-        return globalize(catalog)+":"+PrettyString.sanitize(schema==null?"":schema)+":"+PrettyString.sanitize(table);
+        return globalize(catalog)+getPathSeparator()+PrettyString.sanitize(schema==null?"":schema)+getPathSeparator()+PrettyString.sanitize(table);
     }
 
 	private String globalize(String local) {
@@ -342,15 +352,54 @@ def TYPES = [
 	}
 
 	private String prefix(String local) {
-		return prefix+PrettyString.lamaCase(local);
+		return jdbcPrefix +PrettyString.lamaCase(local);
 	}
 
     private String typeOf(String local) {
-        return prefix+PrettyString.camelCase(local);
+        return jdbcPrefix +PrettyString.camelCase(local);
     }
 
     public void setPrefix(String prefix) {
-		this.prefix = prefix;
+		this.jdbcPrefix = prefix;
 	}
 
+	public String getSchemaPattern() {
+		return schemaPattern;
+	}
+
+	public void setSchemaPattern(String schemaPattern) {
+		this.schemaPattern = schemaPattern;
+	}
+
+	public String getTablePattern() {
+		return tablePattern;
+	}
+
+	public void setTablePattern(String tablePattern) {
+		this.tablePattern = tablePattern;
+	}
+
+	public String getCatalog() {
+		return catalog;
+	}
+
+	public void setCatalog(String catalogName) {
+		this.catalog = catalogName;
+	}
+
+	public String getPathSeparator() {
+		return pathSeparator;
+	}
+
+	public void setPathSeparator(String pathSeparator) {
+		this.pathSeparator= pathSeparator;
+	}
+
+	@Converter
+	public static FactStream curate(Connection connection) throws IQException, FactException {
+		N3Stream stream = new N3Stream();
+		JDBCCurator curator = new JDBCCurator();
+		curator.curate(stream,connection);
+		return stream;
+	}
 }

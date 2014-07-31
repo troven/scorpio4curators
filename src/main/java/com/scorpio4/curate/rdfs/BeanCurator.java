@@ -8,11 +8,13 @@ package com.scorpio4.curate.rdfs;
 
 import com.scorpio4.curate.Curator;
 import com.scorpio4.fact.stream.FactStream;
+import com.scorpio4.fact.stream.N3Stream;
 import com.scorpio4.oops.FactException;
 import com.scorpio4.oops.IQException;
 import com.scorpio4.util.Identifiable;
 import com.scorpio4.util.string.PrettyString;
 import com.scorpio4.vocab.COMMONS;
+import org.apache.camel.Converter;
 import org.limewire.collection.CharSequenceKeyAnalyzer;
 import org.limewire.collection.PatriciaTrie;
 import org.limewire.collection.Trie;
@@ -35,6 +37,7 @@ import java.util.Map;
  * Date  : 2/12/2013
  * Time  : 5:47 PM
  */
+@Converter
 public class BeanCurator implements Curator, Identifiable {
     public static final Logger log = LoggerFactory.getLogger(BeanCurator.class);
     String identity = "self:learn:schema:bean#";
@@ -235,4 +238,13 @@ public class BeanCurator implements Curator, Identifiable {
     public String getIdentity() {
         return identity;
     }
+
+	@Converter
+	public static FactStream curate(Class t) throws IQException, FactException {
+		N3Stream stream = new N3Stream();
+		BeanCurator curator = new BeanCurator();
+		curator.curate(stream,t);
+		return stream;
+	}
+
 }

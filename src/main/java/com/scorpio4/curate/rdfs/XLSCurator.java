@@ -8,12 +8,14 @@ package com.scorpio4.curate.rdfs;
 
 import com.scorpio4.curate.Curator;
 import com.scorpio4.fact.stream.FactStream;
+import com.scorpio4.fact.stream.N3Stream;
 import com.scorpio4.oops.FactException;
 import com.scorpio4.oops.IQException;
 import com.scorpio4.util.DateXSD;
 import com.scorpio4.util.Stopwatch;
 import com.scorpio4.util.string.PrettyString;
 import com.scorpio4.vocab.COMMONS;
+import org.apache.camel.Converter;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.ss.usermodel.*;
@@ -24,7 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Date;
 import java.util.HashMap;
@@ -38,6 +43,7 @@ import java.util.Map;
  * <p/>
  * Import a URL/File reference to a Spreadsheet and export an N3 representation.
  */
+@Converter
 public class XLSCurator implements Curator {
 	private static final Logger log = LoggerFactory.getLogger(XLSCurator.class);
 
@@ -377,4 +383,36 @@ public class XLSCurator implements Curator {
         return (URL.class.isInstance(curated)) || (Workbook.class.isInstance(curated) || File.class.isInstance(curated));
     }
 
+	@Converter
+	public static FactStream curate(Workbook workbook) throws Exception {
+		N3Stream stream = new N3Stream();
+		XLSCurator curator = new XLSCurator();
+		curator.curate(stream,workbook);
+		return stream;
+	}
+
+	@Converter
+	public static Workbook curate(File xls) throws Exception {
+		FileInputStream inputStream = new FileInputStream(xls);
+		Workbook workbook = WorkbookFactory.create(inputStream);
+		inputStream.close();
+		return workbook;
+	}
+
+	@Converter
+	public static Workbook curate(InputStream xls) throws Exception {
+		Workbook workbook = WorkbookFactory.create(xls);
+		xls.close();
+		return workbook;
+	}
+
+	@Converter
+	public static Workbook curate(URL url) throws Exception {
+		return WorkbookFactory.create(url.openStream());
+	}
+
+	@Converter
+	public static Workbook curate(URI url) throws Exception {
+		return curate(url.toURL());
+	}
 }
