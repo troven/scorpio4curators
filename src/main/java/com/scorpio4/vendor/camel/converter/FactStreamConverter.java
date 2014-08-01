@@ -25,7 +25,7 @@ public class FactStreamConverter {
 
 	@Converter
 	public static FactStream toFactStream(GraphQueryResult result) throws QueryEvaluationException {
-		N3Stream stream = new N3Stream();
+		N3Stream stream = new N3Stream("bean:"+FactStreamConverter.class.getCanonicalName());
 		while (result.hasNext()) {
 			Statement stmt = result.next();
 			if (stmt.getObject() instanceof Literal) {

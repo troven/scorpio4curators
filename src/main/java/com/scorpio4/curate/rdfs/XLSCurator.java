@@ -12,6 +12,7 @@ import com.scorpio4.fact.stream.N3Stream;
 import com.scorpio4.oops.FactException;
 import com.scorpio4.oops.IQException;
 import com.scorpio4.util.DateXSD;
+import com.scorpio4.util.IdentityHelper;
 import com.scorpio4.util.Stopwatch;
 import com.scorpio4.util.string.PrettyString;
 import com.scorpio4.vocab.COMMONS;
@@ -25,9 +26,7 @@ import org.openrdf.model.vocabulary.DCTERMS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -48,12 +47,13 @@ public class XLSCurator implements Curator {
 	private static final Logger log = LoggerFactory.getLogger(XLSCurator.class);
 
     public static String NS = "self:curator:xls:";
-    
+
 	String[] IGNORED_RANGES = new String[]{"Print_Area","Excel_","BuiltIn_"};
 	DateXSD dateXSD = new DateXSD();
 	Map<String, Map<String, Map>> rangeHeaders = new HashMap();
 	boolean explicitHeading = true;
-	String baseURI = null;
+
+	String baseURI = "bean:"+getClass().getCanonicalName();
 	URL url = null;
 	private Stopwatch stopwatch = new Stopwatch();
 
@@ -384,15 +384,17 @@ public class XLSCurator implements Curator {
     }
 
 	@Converter
-	public static FactStream curate(Workbook workbook) throws Exception {
-		N3Stream stream = new N3Stream();
+	public static FactStream toFactStream(Workbook workbook) throws Exception {
+		String id = "bean:" + XLSCurator.class.getCanonicalName();
+		N3Stream stream = new N3Stream(id);
 		XLSCurator curator = new XLSCurator();
-		curator.curate(stream,workbook);
+		curator.setBaseURI(IdentityHelper.uuid("#"+id));
+		curator.curate(stream, workbook);
 		return stream;
 	}
 
 	@Converter
-	public static Workbook curate(File xls) throws Exception {
+	public static Workbook toWorkbook(File xls) throws Exception {
 		FileInputStream inputStream = new FileInputStream(xls);
 		Workbook workbook = WorkbookFactory.create(inputStream);
 		inputStream.close();
@@ -400,10 +402,27 @@ public class XLSCurator implements Curator {
 	}
 
 	@Converter
-	public static Workbook curate(InputStream xls) throws Exception {
+	public static Workbook toWorkbook(InputStream xls) throws Exception {
 		Workbook workbook = WorkbookFactory.create(xls);
 		xls.close();
 		return workbook;
+	}
+
+	@Converter
+	public static InputStream toInputStream(final Workbook workbook) throws Exception {
+		final PipedOutputStream pos = new PipedOutputStream();
+		Thread thread = new Thread() {
+			public void run() {
+				try {
+					workbook.write(pos);
+					pos.close();
+				} catch (IOException e) {
+					log.error("IO Pipe Broken: "+e.getMessage(),e);
+				}
+			}
+		};
+		thread.start();
+		return new PipedInputStream(pos);
 	}
 
 	@Converter
@@ -415,4 +434,9 @@ public class XLSCurator implements Curator {
 	public static Workbook curate(URI url) throws Exception {
 		return curate(url.toURL());
 	}
+
+	public void setBaseURI(String baseURI) {
+		this.baseURI = baseURI;
+	}
+
 }

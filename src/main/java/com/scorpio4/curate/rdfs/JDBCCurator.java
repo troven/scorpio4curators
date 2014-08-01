@@ -396,8 +396,8 @@ def TYPES = [
 	}
 
 	@Converter
-	public static FactStream curate(Connection connection) throws IQException, FactException {
-		N3Stream stream = new N3Stream();
+	public static FactStream curate(Connection connection) throws IQException, FactException, SQLException {
+		N3Stream stream = new N3Stream(connection.getMetaData().getURL());
 		JDBCCurator curator = new JDBCCurator();
 		curator.curate(stream,connection);
 		return stream;

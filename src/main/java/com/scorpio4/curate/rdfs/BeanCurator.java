@@ -240,8 +240,8 @@ public class BeanCurator implements Curator, Identifiable {
     }
 
 	@Converter
-	public static FactStream curate(Class t) throws IQException, FactException {
-		N3Stream stream = new N3Stream();
+	public static FactStream toFactStream(Class t) throws IQException, FactException {
+		N3Stream stream = new N3Stream("bean:"+BeanCurator.class.getCanonicalName());
 		BeanCurator curator = new BeanCurator();
 		curator.curate(stream,t);
 		return stream;
