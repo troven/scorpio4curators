@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Fact:Core (c) Lee Curtis 2012-2013
@@ -43,6 +44,7 @@ public class JDBCCurator implements Curator, Identifiable {
 
 	String dot = ".", quote = "'";
 	String catalog = null, schemaPattern = null, tablePattern = "%";
+	String excludeRegEx = ":sys:|:INFORMATION_SCHEMA:";
 	private String pathSeparator = ":";
 
 	public JDBCCurator() {
@@ -140,7 +142,7 @@ def TYPES = [
 	}
 
 	private void curateCatalog(FactStream learn, DatabaseMetaData metaData, String catalog) throws FactException, SQLException {
-		String[] types = null;
+		String[] tableTypes = null;
 		String catalogURI = globalize(catalog);
 
 		log.debug("Curating catalog: " + catalog+" @ "+catalogURI);
@@ -150,18 +152,22 @@ def TYPES = [
 		learn.fact(catalogURI, prefix("name"), catalog, "string");
 		learn.fact(catalogURI, LABEL, PrettyString.humanize(catalog), "string");
 		Map seenSchema = new HashMap();
-		ResultSet tables = metaData.getTables(catalog, getSchemaPattern(), getTablePattern(), types);
+		ResultSet tables = metaData.getTables(catalog, getSchemaPattern(), getTablePattern(), tableTypes);
 		int count = 0;
 		while(tables.next()) {
 			// handle schema (including NULL schema)
 			String schema = tables.getString("TABLE_SCHEM");
 			if (schema==null) schema = "";
-			if (!seenSchema.containsKey(schema)) {
-				curateSchema(learn, catalog, catalogURI, schema);
-				seenSchema.put(schema, true);
+			if ( !Pattern.matches(excludeRegEx, schema) ) {
+				if (!seenSchema.containsKey(schema)) {
+					curateSchema(learn, catalog, catalogURI, schema);
+					seenSchema.put(schema, true);
+				}
+				curateTable(learn, metaData, tables);
+				count++;
+			} else {
+				log.debug("Skip excluded schema: "+schema);
 			}
-			curateTable(learn, metaData, tables);
-			count++;
 		}
 		log.debug("JDBC Curated "+count+" tables");
 		tables.close();
@@ -194,8 +200,9 @@ def TYPES = [
         String schemaURI = catalogURI+":"+schema;
 
         String tableName = tableMeta.getString("TABLE_NAME");
+
 //        String tableID = sanitize(tableName);
-        String tableType = tableMeta.getString("TABLE_TYPE");
+        String tableType = PrettyString.camelCase(tableMeta.getString("TABLE_TYPE"));
         String label = PrettyString.humanize(tableName).trim();
         String comments = tableMeta.getString("REMARKS");
         if (comments == null ||comments.trim().equals("")) comments = PrettyString.humanize(catalog)+" "+(PrettyString.humanize(schema)+" "+label+" "+PrettyString.lamaCase(tableType)).trim();
@@ -218,13 +225,43 @@ def TYPES = [
 
         learn.fact(tableURI, prefix("name"), tableName, "string");
         learn.fact(tableURI, RDFS.ISDEFINEDBY.stringValue(), schemaURI);
-
         curateColumns(learn, metaData, catalog, schema, tableName, tableURI, schemaURI);
-
+	    curatePrimaryKeys(learn, metaData, catalog, schema, tableName, tableURI, schemaURI);
         curateConstraints(learn, metaData, catalog, schema, tableName, tableURI, schemaURI);
+	    curateUniqueIndices(learn, metaData, catalog, schema, tableName, tableURI, schemaURI);
     }
 
-    protected void curateColumns(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String table, String tableURI, String schemaURI) throws SQLException, FactException {
+	private void curatePrimaryKeys(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String tableName, String tableURI, String schemaURI) throws SQLException, FactException {
+		ResultSet rs = metaData.getPrimaryKeys(catalog, schema, tableName);
+		while(rs.next()) {
+			String keySeq = rs.getString("KEY_SEQ");
+			String columnName = rs.getString("COLUMN_NAME");
+			if (columnName!=null) {
+				String columnURI = tableURI+ getPathSeparator()+sanitize(columnName);
+				String keyURI = columnURI+"_"+keySeq;
+
+				learn.fact(tableURI, prefix("primaryKey"), keyURI);
+			}
+		}
+	}
+
+	private void curateUniqueIndices(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String tableName, String tableURI, String schemaURI) throws SQLException, FactException {
+		ResultSet rs = metaData.getIndexInfo(catalog, schema, tableName, true, true);
+		while(rs.next()) {
+			String indexName = rs.getString("INDEX_NAME");
+			String table = rs.getString("TABLE_NAME");
+			String columnName = rs.getString("COLUMN_NAME");
+			if (columnName!=null) {
+				String columnURI = tableURI+ getPathSeparator()+sanitize(columnName);
+				String indexURI = columnURI+getPathSeparator()+indexName;
+
+				learn.fact(columnURI, prefix("uniqueIndex"), indexURI);
+				learn.fact(indexURI, prefix("name"), indexName, "string");
+			}
+		}
+	}
+
+	protected void curateColumns(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String table, String tableURI, String schemaURI) throws SQLException, FactException {
         log.debug("Curating columns for: "+catalog+" "+table);
 		ResultSet columns = metaData.getColumns(catalog, schema, table, "%");
 		while(columns.next()) {
@@ -237,6 +274,9 @@ def TYPES = [
 			String columnSize= columns.getString("COLUMN_SIZE");
 			String allowNulls = columns.getString("IS_NULLABLE");
 			String defaultValue = columns.getString("COLUMN_DEF");
+			short ordinalPosition = columns.getShort("ORDINAL_POSITION");
+			String isAutoincrement= columns.getString("IS_AUTOINCREMENT");
+//			String isGeneratedcolumn= columns.getString("IS_GENERATEDCOLUMN");
 			String columnID = sanitize(table)+"_"+sanitize(columnName);
 
 			String columnURI = tableURI+ getPathSeparator()+sanitize(columnName);
@@ -255,12 +295,18 @@ def TYPES = [
 			learn.fact(columnURI, RDFS.ISDEFINEDBY.stringValue(), schemaURI);
             learn.fact(columnURI, prefix("as"), columnID, "string");
             learn.fact(columnURI, prefix("name"), columnName, "string");
+			learn.fact(columnURI, prefix("size"), columnSize, "integer");
 
-            learn.fact(columnURI, prefix("size"), columnSize, "integer");
-            learn.fact(columnURI, prefix("required"), (allowNulls != null), "boolean");
+			learn.fact(columnURI, prefix("order"), ordinalPosition, "integer");
+            learn.fact(columnURI, prefix("autoIncrement"), isYes(isAutoincrement), "boolean");
+//			learn.fact(columnURI, prefix("generatedColumn"), isYes(isGeneratedcolumn), "boolean");
             if (defaultValue!=null) learn.fact(columnURI, prefix("default"), defaultValue, "string");
 		}
 		columns.close();
+	}
+
+	private boolean isYes(String isAutoincrement) {
+		return (isAutoincrement!=null&&isAutoincrement.equalsIgnoreCase("YES"));
 	}
 
 	protected void curateConstraints(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String table, String tableURI, String schemaURI) throws SQLException, FactException {

@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.scorpio4</groupId>
         <artifactId>scorpio4</artifactId>
-        <version>0.11-SNAPSHOT</version>
+        <version>0.12-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
 
@@ -98,6 +98,12 @@
 
     <!-- Project dependencies -->
     <dependencies>
+
+        <dependency>
+            <groupId>com.scorpio4</groupId>
+            <artifactId>scorpio4core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.scorpio4</groupId>
