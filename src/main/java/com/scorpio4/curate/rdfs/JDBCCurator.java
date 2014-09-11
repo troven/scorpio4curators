@@ -1,6 +1,6 @@
 package com.scorpio4.curate.rdfs;
 /*
- *   Fact:Core - CONFIDENTIAL
+ *   Scorpio4 - CONFIDENTIAL
  *   Copyright (c) 2009-2014 Lee Curtis, All Rights Reserved.
  *
  *
@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Fact:Core (c) Lee Curtis 2012-2013
+ * Scorpio4 (c) Lee Curtis 2012-2013
  * @author lee
  * Date: 14/03/13
  * Time: 9:44 AM
@@ -44,7 +44,7 @@ public class JDBCCurator implements Curator, Identifiable {
 
 	String dot = ".", quote = "'";
 	String catalog = null, schemaPattern = null, tablePattern = "%";
-	String excludeRegEx = ":sys:|:INFORMATION_SCHEMA:";
+	String excludeRegEx = "sys|INFORMATION_SCHEMA";
 	private String pathSeparator = ":";
 
 	public JDBCCurator() {
@@ -299,6 +299,7 @@ def TYPES = [
 
 			learn.fact(columnURI, prefix("order"), ordinalPosition, "integer");
             learn.fact(columnURI, prefix("autoIncrement"), isYes(isAutoincrement), "boolean");
+			learn.fact(columnURI, prefix("optional"), isYes(allowNulls), "boolean");
 //			learn.fact(columnURI, prefix("generatedColumn"), isYes(isGeneratedcolumn), "boolean");
             if (defaultValue!=null) learn.fact(columnURI, prefix("default"), defaultValue, "string");
 		}

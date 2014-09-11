@@ -1,6 +1,6 @@
 package com.scorpio4.curate.rdf;
 /*
- *   Fact:Core - CONFIDENTIAL
+ *   Scorpio4 - CONFIDENTIAL
  *   Copyright (c) 2009-2014 Lee Curtis, All Rights Reserved.
  *
  *

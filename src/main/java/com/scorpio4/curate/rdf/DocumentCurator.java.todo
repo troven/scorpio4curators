@@ -1,6 +1,6 @@
 package com.scorpio4.curate.rdf;
 /*
- *   Fact:Core - CONFIDENTIAL
+ *   Scorpio4 - CONFIDENTIAL
  *   Copyright (c) 2009-2014 Lee Curtis, All Rights Reserved.
  *
  *
@@ -38,7 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Fact:Core (c) 2013
+ * Scorpio4 (c) 2013
  * Module: com.scorpio4.learn
  * @author lee
  * Date  : 28/01/2014
