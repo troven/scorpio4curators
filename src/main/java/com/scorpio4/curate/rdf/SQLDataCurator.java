@@ -140,13 +140,14 @@ public class SQLDataCurator extends JDBCCuratorSupport implements Curator {
 	public void curate(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String table, ResultSetMetaData resultSetMetaData, ResultSet resultSet, Collection<String> pkeys, Map<String, String> fkeys) throws SQLException, FactException {
 		String tableURI = getTableURI(catalog, schema, table);
 
+		//pkeys
 		String rowURI = getRowURI(tableURI, pkeys, resultSet);
-
 		for (int i=1;i<resultSetMetaData.getColumnCount();i++) {
 			String columnName = resultSetMetaData.getColumnName(i);
 			String columnURI = getColumnURI(tableURI, columnName);
 
-			String fkURI = fkeys.get(columnName);
+//			String fkURI = fkeys.get(columnName);
+			String fkURI = null;
 			String value = resultSet.getString(i);
 			if (fkURI!=null) {
 //				log.debug("FK: "+table+" @ "+columnName+" -> "+fkURI);
@@ -161,7 +162,7 @@ public class SQLDataCurator extends JDBCCuratorSupport implements Curator {
 
 	private String getRowURI(String tableURI, Collection<String> pkeys, ResultSet resultSet) throws SQLException {
 		String rowURI = null;
-		if (pkeys.isEmpty()) {
+		if (pkeys == null || pkeys.isEmpty()) {
 			rowURI = IdentityHelper.uuid(tableURI+"@");
 		} else {
 			StringBuilder keyURI = new StringBuilder();
