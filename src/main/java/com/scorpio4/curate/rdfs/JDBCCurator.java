@@ -15,8 +15,6 @@ import com.scorpio4.util.string.PrettyString;
 import org.apache.camel.Converter;
 import org.openrdf.model.vocabulary.DCTERMS;
 import org.openrdf.model.vocabulary.RDFS;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -35,18 +33,7 @@ import java.util.regex.Pattern;
  * Generates N3 representation of a JDBC Connection's DatabaseMetaData
  */
 @Converter
-public class JDBCCurator implements Curator, Identifiable {
-	private static final Logger log = LoggerFactory.getLogger(JDBCCurator.class);
-
-	private String jdbcPrefix = "bean:"+getClass().getCanonicalName()+"#";
-	private String baseURI = null;
-    private long startTimestamp = System.currentTimeMillis();
-
-	String dot = ".", quote = "'";
-	String catalog = null, schemaPattern = null, tablePattern = "%";
-	String excludeRegEx = "sys|INFORMATION_SCHEMA";
-	private String pathSeparator = ":";
-
+public class JDBCCurator extends JDBCCuratorSupport implements Curator, Identifiable {
 	public JDBCCurator() {
 	}
 
@@ -63,16 +50,6 @@ public class JDBCCurator implements Curator, Identifiable {
 		String uri = connection.getMetaData().getURL();
 		setIdentity(uri);
 		if (learner!=null) curate(learner, connection);
-	}
-
-	@Override
-	public String getIdentity() {
-		return this.baseURI;
-	}
-
-	public void setIdentity(String baseURI) {
-		if (baseURI.endsWith("#") || baseURI.endsWith("/") || baseURI.endsWith(":")) this.baseURI = baseURI;
-		else this.baseURI = baseURI+"#";
 	}
 
     @Override
@@ -279,7 +256,7 @@ def TYPES = [
 //			String isGeneratedcolumn= columns.getString("IS_GENERATEDCOLUMN");
 			String columnID = sanitize(table)+"_"+sanitize(columnName);
 
-			String columnURI = tableURI+ getPathSeparator()+sanitize(columnName);
+			String columnURI = getColumnURI(tableURI, columnName);
 //			String fqColumn = (schema==null||schema.equals("")?"":quote(schema)+dot)+quote(table)+dot+quote(columnName);
 
 			log.debug("\t"+columnName+": "+type+" ->"+columnURI);
@@ -304,10 +281,6 @@ def TYPES = [
             if (defaultValue!=null) learn.fact(columnURI, prefix("default"), defaultValue, "string");
 		}
 		columns.close();
-	}
-
-	private boolean isYes(String isAutoincrement) {
-		return (isAutoincrement!=null&&isAutoincrement.equalsIgnoreCase("YES"));
 	}
 
 	protected void curateConstraints(FactStream learn, DatabaseMetaData metaData, String catalog, String schema, String table, String tableURI, String schemaURI) throws SQLException, FactException {
@@ -379,67 +352,6 @@ def TYPES = [
                 learn.fact(joinSeqURI, prefix("fk"), fkFieldURI);
             }
 		}
-	}
-
-    public String getTableURI(String catalog, String schema, String table) {
-        return globalize(catalog)+getPathSeparator()+PrettyString.sanitize(schema==null?"":schema)+getPathSeparator()+PrettyString.sanitize(table);
-    }
-
-	private String globalize(String local) {
-		return getIdentity()+sanitize(local);
-	}
-
-	private String sanitize(String text) {
-		return PrettyString.sanitize(text);
-	}
-
-	private String quote(String text) {
-		if (text==null) return "";
-		return quote+text+quote;
-	}
-
-	private String prefix(String local) {
-		return jdbcPrefix +PrettyString.lamaCase(local);
-	}
-
-    private String typeOf(String local) {
-        return jdbcPrefix +PrettyString.camelCase(local);
-    }
-
-    public void setPrefix(String prefix) {
-		this.jdbcPrefix = prefix;
-	}
-
-	public String getSchemaPattern() {
-		return schemaPattern;
-	}
-
-	public void setSchemaPattern(String schemaPattern) {
-		this.schemaPattern = schemaPattern;
-	}
-
-	public String getTablePattern() {
-		return tablePattern;
-	}
-
-	public void setTablePattern(String tablePattern) {
-		this.tablePattern = tablePattern;
-	}
-
-	public String getCatalog() {
-		return catalog;
-	}
-
-	public void setCatalog(String catalogName) {
-		this.catalog = catalogName;
-	}
-
-	public String getPathSeparator() {
-		return pathSeparator;
-	}
-
-	public void setPathSeparator(String pathSeparator) {
-		this.pathSeparator= pathSeparator;
 	}
 
 	@Converter

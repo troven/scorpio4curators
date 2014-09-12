@@ -14,6 +14,8 @@ import com.scorpio4.vocab.COMMONS;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
+import java.sql.SQLException;
+
 /**
  * Scorpio4 (c) Lee Curtis 2012
  * @author lee
@@ -37,7 +39,7 @@ public interface Curator extends Identifiable {
 	public static final String DEFINED_BY = RDFS.NAMESPACE+"isDefinedBy";
 	public static final String FILE = COMMONS.CORE+"file/";
 
-	public void curate(FactStream stream, Object curated) throws FactException, IQException;
+	public void curate(FactStream stream, Object curated) throws FactException, IQException, SQLException;
 
     public boolean canCurate(Object curated);
 }
