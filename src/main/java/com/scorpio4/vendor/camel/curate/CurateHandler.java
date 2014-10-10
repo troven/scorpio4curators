@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Map;
 
 /**
@@ -46,14 +47,14 @@ public class CurateHandler extends BeanProcessor {
 	}
 
 	@Handler
-	public void handle(Exchange exchange) throws MalformedQueryException, RepositoryException, QueryResultHandlerException, QueryEvaluationException, IOException, FactException, IQException, RepositoryConfigException {
+	public void handle(Exchange exchange) throws MalformedQueryException, RepositoryException, QueryResultHandlerException, QueryEvaluationException, IOException, FactException, IQException, RepositoryConfigException, SQLException {
 		Message in = exchange.getIn();
 		if (curator!=null) {
 			doCurate(curator, in.getBody());
 		}
 	}
 
-	private void doCurate(Curator curator, Object body) throws RepositoryException, RepositoryConfigException, FactException, IQException {
+	private void doCurate(Curator curator, Object body) throws RepositoryException, RepositoryConfigException, FactException, IQException, SQLException {
 		if (!curator.canCurate(body)) return;
 		String identity = component.getEngine().getIdentity();
 		log.debug("Curated: "+curator.getClass().getSimpleName()+" @ "+identity+"\n"+body);

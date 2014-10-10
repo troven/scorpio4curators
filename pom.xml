@@ -131,6 +131,40 @@
             <version>1.4</version>
         </dependency>
 
+        <!-- Apache Libraries -->
+        <dependency>
+            <groupId>org.apache.any23</groupId>
+            <artifactId>apache-any23-core</artifactId>
+            <version>1.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.openrdf.sesame</groupId>
+                    <artifactId>sesame-model</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openrdf.sesame</groupId>
+                    <artifactId>sesame-rio-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openrdf.sesame</groupId>
+                    <artifactId>sesame-repository-sail</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openrdf.sesame</groupId>
+                    <artifactId>sesame-rio-trix</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openrdf.sesame</groupId>
+                    <artifactId>sesame-sail-memory</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.openrdf.sesame</groupId>
+                    <artifactId>sesame-repository-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+
     </dependencies>
 
 </project>

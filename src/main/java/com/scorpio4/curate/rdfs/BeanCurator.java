@@ -6,6 +6,7 @@ package com.scorpio4.curate.rdfs;
  *
  */
 
+import com.scorpio4.curate.CORE;
 import com.scorpio4.curate.Curator;
 import com.scorpio4.fact.stream.FactStream;
 import com.scorpio4.fact.stream.N3Stream;
@@ -19,8 +20,6 @@ import org.limewire.collection.CharSequenceKeyAnalyzer;
 import org.limewire.collection.PatriciaTrie;
 import org.limewire.collection.Trie;
 import org.openrdf.model.vocabulary.RDF;
-import org.semarglproject.vocab.OWL;
-import org.semarglproject.vocab.RDFS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,19 +121,19 @@ public class BeanCurator implements Curator, Identifiable {
 //            throw new IQException("self:vendor:vaadin:oops:config:missing-class#"+clazz.getCanonicalName());
         log.debug("Inspecting: "+clazz.getCanonicalName()+" -> "+classURI);
 
-        stream.fact(classURI, RDF.TYPE.stringValue(), RDFS.CLASS);
+        stream.fact(classURI, RDF.TYPE.stringValue(), COMMONS.RDFS_TYPE);
 //        stream.fact(classURI, CORE.CURATOR+"by", getIdentity());
         classesMapped.put(classURI, true);
 	    
 	    for(Class iface:clazz.getInterfaces()) {
-            stream.fact( classURI, RDFS.SUB_CLASS_OF, getClassURI(iface));
+            stream.fact( classURI, CORE.RDFS_TYPE, getClassURI(iface));
         }
-        stream.fact( classURI, RDFS.SUB_CLASS_OF, getClassURI(clazz.getSuperclass()));
+        stream.fact( classURI, CORE.RDFS_SUBCLASS, getClassURI(clazz.getSuperclass()));
 
-        stream.fact(classURI, RDFS.LABEL, clazz.getSimpleName(), "string");
-        stream.fact(classURI, RDFS.COMMENT, clazz.getCanonicalName(), "string");
+        stream.fact(classURI, COMMONS.LABEL, clazz.getSimpleName(), "string");
+        stream.fact(classURI, COMMONS.COMMENT, clazz.getCanonicalName(), "string");
 
-        stream.fact(classURI, RDFS.IS_DEFINED_BY, pkg);
+        stream.fact(classURI, COMMONS.ISDEFINEDBY, pkg);
         PropertyDescriptor pds[] = beanInfo.getPropertyDescriptors();
         for (int i = 0; i < pds.length; i++) {
             curate(stream, clazz, pds[i]);
@@ -174,11 +173,11 @@ public class BeanCurator implements Curator, Identifiable {
         if (readMethod!=null) log.trace("\tR: "+readMethod.getName()+" -> "+ Arrays.toString(readMethod.getParameterTypes()));
 	    
 	    if (type.isPrimitive()) {
-            stream.fact(propertyURI, RDF.TYPE.stringValue(), OWL.DATATYPE_PROPERTY);
-            stream.fact(propertyURI, RDFS.LABEL, propertyDescriptor.getDisplayName(), "string");
-            stream.fact(propertyURI, RDFS.COMMENT, humanize(propertyDescriptor.getShortDescription())+" ("+propertyDescriptor.getPropertyType().getSimpleName()+")", "string");
-            stream.fact(propertyURI, RDFS.DOMAIN, classURI);
-            stream.fact(propertyURI, RDFS.RANGE, COMMONS.XSD+propertyDescriptor.getPropertyType().getSimpleName());
+            stream.fact(propertyURI, RDF.TYPE.stringValue(), COMMONS.DATATYPE);
+            stream.fact(propertyURI, COMMONS.LABEL, propertyDescriptor.getDisplayName(), "string");
+            stream.fact(propertyURI, COMMONS.COMMENT, humanize(propertyDescriptor.getShortDescription())+" ("+propertyDescriptor.getPropertyType().getSimpleName()+")", "string");
+            stream.fact(propertyURI, COMMONS.DOMAIN, classURI);
+            stream.fact(propertyURI, COMMONS.RANGE, COMMONS.XSD+propertyDescriptor.getPropertyType().getSimpleName());
             stream.fact(propertyURI, pkg+"editor", getClassURI(propertyDescriptor.getPropertyEditorClass()));
 
             if (readMethod!=null) {
@@ -192,21 +191,21 @@ public class BeanCurator implements Curator, Identifiable {
                 stream.fact(propertyURI, pkg+"writeReturnType", getClassURI(writeMethod.getReturnType()));
             }
 
-            stream.fact( propertyURI, RDFS.IS_DEFINED_BY, pkg);
+            stream.fact( propertyURI, COMMONS.ISDEFINEDBY, pkg);
         } else {
             String rangeClassURI = getClassURI(type);
             if (rangeClassURI!=null) {
-                stream.fact(propertyURI, RDF.TYPE.stringValue(), OWL.DATATYPE_PROPERTY);
-                stream.fact(propertyURI, RDFS.LABEL, propertyDescriptor.getDisplayName(), "string");
-                stream.fact(propertyURI, RDFS.COMMENT, humanize(propertyDescriptor.getShortDescription()), "string");
-                stream.fact(propertyURI, RDFS.DOMAIN, classURI);
-                stream.fact(propertyURI, RDFS.RANGE, rangeClassURI);
+                stream.fact(propertyURI, RDF.TYPE.stringValue(), COMMONS.DATATYPE);
+                stream.fact(propertyURI, COMMONS.LABEL, propertyDescriptor.getDisplayName(), "string");
+                stream.fact(propertyURI, COMMONS.COMMENT, humanize(propertyDescriptor.getShortDescription()), "string");
+                stream.fact(propertyURI, COMMONS.DOMAIN, classURI);
+                stream.fact(propertyURI, COMMONS.RANGE, rangeClassURI);
                 stream.fact(propertyURI, pkg+"editor", getClassURI(propertyDescriptor.getPropertyEditorClass()));
 
                 curate(stream, propertyURI,pkg, "read", readMethod);
                 curate(stream, propertyURI,pkg, "write", writeMethod);
 
-                stream.fact( propertyURI, RDFS.IS_DEFINED_BY, pkg);
+                stream.fact( propertyURI, COMMONS.ISDEFINEDBY, pkg);
                 if (recurseClasses && !type.isPrimitive()) {
                     log.debug("Recurse: "+type);
                     this.curate(stream, type);

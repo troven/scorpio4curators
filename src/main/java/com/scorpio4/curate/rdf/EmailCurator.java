@@ -22,7 +22,6 @@ import org.apache.commons.codec.net.URLCodec;
 import org.apache.commons.io.IOUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.semarglproject.vocab.XSD;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -251,14 +250,14 @@ public class EmailCurator implements Identifiable, Curator {
 		learn.fact(msgURI, A, NS_MAIL + "Message");
 		String subject = message.getSubject();
 		subject = subject==null?"":subject;
-		learn.fact(msgURI, LABEL, subject, XSD.STRING);
+		learn.fact(msgURI, LABEL, subject, "string");
 		learn.fact(msgURI, NS_MAIL+"number", message.getMessageNumber(), "integer");
 
-		learn.fact(msgURI, NS_MAIL+"sent", dateXSD.format(message.getSentDate()), XSD.DATE_TIME);
-		learn.fact(msgURI, NS_MAIL+"received", dateXSD.format(message.getReceivedDate()), XSD.DATE_TIME);
-		learn.fact(msgURI, NS_MAIL+"curated", dateXSD.format(new Date()), XSD.DATE_TIME);
+		learn.fact(msgURI, NS_MAIL+"sent", dateXSD.format(message.getSentDate()), "dateTime");
+		learn.fact(msgURI, NS_MAIL+"received", dateXSD.format(message.getReceivedDate()), "dateTime");
+		learn.fact(msgURI, NS_MAIL+"curated", dateXSD.format(new Date()), "dateTime");
 
-		learn.fact(msgURI, NS_MAIL + "size", message.getSize(), XSD.INTEGER);
+		learn.fact(msgURI, NS_MAIL + "size", message.getSize(), "integer");
 
 		// Body
 		try {
@@ -341,7 +340,7 @@ public class EmailCurator implements Identifiable, Curator {
 			} else if (body instanceof String) {
 
 				log.debug("Learn Body: "+msgURI+" -> "+filename);
-				learn.fact( msgURI, NS_MAIL+"body", "<body>"+body.toString()+"</body>", XSD.STRING );
+				learn.fact( msgURI, NS_MAIL+"body", "<body>"+body.toString()+"</body>", "string");
 //				learn.fact( msgURI, COMMENT, summariser.summarise(body.toString(), summaryLines), XSD.STRING );
 
 			} else if (body instanceof MimeMultipart) {
