@@ -215,9 +215,7 @@ def TYPES = [
 			String columnName = rs.getString("COLUMN_NAME");
 			if (columnName!=null) {
 				String columnURI = tableURI+ getPathSeparator()+sanitize(columnName);
-				String keyURI = columnURI+"_"+keySeq;
-
-				learn.fact(tableURI, prefix("primaryKey"), keyURI);
+				learn.fact(tableURI, prefix("primaryKey"), columnURI);
 			}
 		}
 	}
@@ -293,7 +291,6 @@ def TYPES = [
             String fkName = joins.getString("FK_NAME");
             Map seqs = fkJoins.get(fkName);
             if (seqs==null) {
-                int fkSeqNum = joins.getInt("KEY_SEQ");
                 seqs = new HashMap();
                 fkJoins.put(fkName, seqs);
             }
